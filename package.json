@@ -1,0 +1,35 @@
+{
+  "name": "matvis",
+  "version": "1.0.0",
+  "description": "Interactive matrix visualization inspired by 3blue1brown.",
+  "main": "app.js",
+  "scripts": {
+    "dev": "webpack -d --watch",
+    "build": "webpack -p"
+  },
+  "author": "Shad Sharma",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-core": "^6.13.2",
+    "babel-loader": "^6.2.5",
+    "babel-preset-es2015": "^6.13.2",
+    "babel-preset-react": "^6.11.1",
+    "css-loader": "^0.23.1",
+    "file-loader": "^0.9.0",
+    "html-webpack-plugin": "^2.22.0",
+    "imports-loader": "^0.6.5",
+    "jshint": "^2.9.2",
+    "jshint-loader": "^0.8.3",
+    "node-libs-browser": "^1.0.0",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.1"
+  },
+  "dependencies": {
+    "numeric": "^1.2.6",
+    "react": "^15.3.0",
+    "react-bootstrap": "^0.30.2",
+    "react-bootstrap-native-slider": "^2.0.0",
+    "react-dom": "^15.3.0"
+  }
+}
