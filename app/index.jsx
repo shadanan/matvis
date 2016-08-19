@@ -8,7 +8,7 @@ import Numeric from 'numeric';
 class CanvasComponent extends React.Component {
   constructor() {
     super();
-    this.state = {a: 0, c: 1, b: -1, d: 0, currentCrossHair: 0};
+    this.state = {a: 0, c: 1, b: -1, d: 0, x: 1, y: 1, currentCrossHair: 0};
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -40,11 +40,15 @@ class CanvasComponent extends React.Component {
       [mousePosition.x, mousePosition.y], [this.state.a, this.state.c]));
     let d2 = Numeric.norm2(Numeric.sub(
       [mousePosition.x, mousePosition.y], [this.state.b, this.state.d]));
+    let d3 = Numeric.norm2(Numeric.sub(
+      [mousePosition.x, mousePosition.y], [this.state.x, this.state.y]));
 
-    if (d1 < d2) {
+    if (Math.min(d1, d2, d3) == d1) {
       this.state.currentCrossHair = 1;
-    } else {
+    } else if (Math.min(d1, d2, d3) == d2) {
       this.state.currentCrossHair = 2;
+    } else if (Math.min(d1, d2, d3) == d3) {
+      this.state.currentCrossHair = 3;
     }
 
     this.handleMouseMove(event);
@@ -64,6 +68,9 @@ class CanvasComponent extends React.Component {
       } else if (this.state.currentCrossHair == 2) {
         this.state.b = mousePosition.x;
         this.state.d = mousePosition.y;
+      } else if (this.state.currentCrossHair == 3) {
+        this.state.x = mousePosition.x;
+        this.state.y = mousePosition.y;
       }
 
       this.updateCanvas();
@@ -81,6 +88,7 @@ class CanvasComponent extends React.Component {
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(this.props.scale, -this.props.scale);
 
+    let mf = [[this.state.a, this.state.b], [this.state.c, this.state.d]];
     let m =
       [
         [
@@ -193,6 +201,32 @@ class CanvasComponent extends React.Component {
     ctx.stroke();
 
 
+    // Input vector
+    ctx.lineWidth = 0.04;
+    ctx.strokeStyle = '#fdfe00';
+    ctx.fillStyle = '#fdfe00';
+
+    let tov = Numeric.dot(m, [this.state.x, this.state.y]);
+    let tox = tov[0];
+    let toy = tov[1];
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(tox, toy);
+    ctx.stroke();
+
+    let headlen = 0.2;
+    let angle = Math.atan2(toy, tox);
+
+    ctx.beginPath();
+    ctx.moveTo(tox, toy);
+    ctx.lineTo(tox-headlen*Math.cos(angle-Math.PI/7),toy-headlen*Math.sin(angle-Math.PI/7));
+    ctx.lineTo(tox-headlen*Math.cos(angle+Math.PI/7),toy-headlen*Math.sin(angle+Math.PI/7));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+
     let crossHairSize = 0.16;
     ctx.lineWidth = 0.04;
 
@@ -229,6 +263,23 @@ class CanvasComponent extends React.Component {
     ctx.lineTo(this.state.b - (crossHairSize * 3 / 2), this.state.d);
     ctx.stroke();
 
+
+    // Transformed input crosshair
+    ctx.strokeStyle = '#fdfe00';
+    ctx.fillStyle = '#fdfe00';
+
+    ctx.beginPath();
+    ctx.arc(this.state.x, this.state.y, crossHairSize, 0, 2 * Math.PI, false);
+    ctx.moveTo(this.state.x, this.state.y + (crossHairSize / 2));
+    ctx.lineTo(this.state.x, this.state.y + (crossHairSize * 3 / 2));
+    ctx.moveTo(this.state.x, this.state.y - (crossHairSize / 2));
+    ctx.lineTo(this.state.x, this.state.y - (crossHairSize * 3 / 2));
+    ctx.moveTo(this.state.x + (crossHairSize / 2), this.state.y);
+    ctx.lineTo(this.state.x + (crossHairSize * 3 / 2), this.state.y);
+    ctx.moveTo(this.state.x - (crossHairSize / 2), this.state.y);
+    ctx.lineTo(this.state.x - (crossHairSize * 3 / 2), this.state.y);
+    ctx.stroke();
+
     ctx.restore();
 
     // Output Matrix
@@ -249,6 +300,34 @@ class CanvasComponent extends React.Component {
     ctx.lineTo(155, 80);
     ctx.stroke();
 
+    ctx.beginPath();
+    ctx.moveTo(175, 10);
+    ctx.lineTo(170, 10);
+    ctx.lineTo(170, 80);
+    ctx.lineTo(175, 80);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(235, 10);
+    ctx.lineTo(240, 10);
+    ctx.lineTo(240, 80);
+    ctx.lineTo(235, 80);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(280, 10);
+    ctx.lineTo(275, 10);
+    ctx.lineTo(275, 80);
+    ctx.lineTo(280, 80);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(340, 10);
+    ctx.lineTo(345, 10);
+    ctx.lineTo(345, 80);
+    ctx.lineTo(340, 80);
+    ctx.stroke();
+
     ctx.font = "20pt serif";
 
     ctx.fillStyle = '#8cbe63';
@@ -258,6 +337,16 @@ class CanvasComponent extends React.Component {
     ctx.fillStyle = '#ff7c5c';
     ctx.fillText(this.state.b.toFixed(2), 90, 35);
     ctx.fillText(this.state.d.toFixed(2), 90, 75);
+
+    ctx.fillStyle = '#fdfe00';
+    ctx.fillText(this.state.x.toFixed(2), 180, 35);
+    ctx.fillText(this.state.y.toFixed(2), 180, 75);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText("=", 250, 50);
+    let fv = Numeric.dot(mf, [this.state.x, this.state.y]);
+    ctx.fillText(fv[0].toFixed(2), 285, 35);
+    ctx.fillText(fv[1].toFixed(2), 285, 75);
   }
 
   render() {
@@ -289,10 +378,11 @@ class App extends React.Component {
             Linear Transformation Visualizer - Inspired by 3Blue1Brown
           </a>
         </h1>
-        <p>
-          Drag the green and red targets to set in the transformed basis
-          vectors. Drag the t slider to visualize the transformation.
-        </p>
+        <ul>
+          <li>Drag the green and red targets to set in the transformed basis vectors.</li>
+          <li>Drag the yellow target to set the input vector.</li>
+          <li>Drag the t slider to visualize the transformation.</li>
+        </ul>
         <CanvasComponent t={this.state.t} scale={60} />
         <ListGroup>
           <ListGroupItem header={"t (" + this.state.t + ")"}>
