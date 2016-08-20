@@ -49,6 +49,47 @@ class CanvasComponent extends React.Component {
   }
 
   componentDidMount() {
+    let self = this;
+    let canvas = this.refs.canvas;
+
+    canvas.addEventListener("touchstart", function(touchEvent) {
+      let mouseEvent = new MouseEvent("mousedown", {
+        clientX: touchEvent.touches[0].clientX,
+        clientY: touchEvent.touches[0].clientY,
+      });
+      self.handleMouseDown(mouseEvent);
+    }, false);
+
+    canvas.addEventListener("touchend", function(touchEvent) {
+      let mouseEvent = new MouseEvent("mouseup", {});
+      self.handleMouseUp(mouseEvent);
+    }, false);
+
+    canvas.addEventListener("touchmove", function(touchEvent) {
+      let mouseEvent = new MouseEvent("mousemove", {
+        clientX: touchEvent.touches[0].clientX,
+        clientY: touchEvent.touches[0].clientY,
+      });
+      self.handleMouseMove(mouseEvent);
+    }, false);
+
+    // Prevent scrolling when touching the canvas
+    document.body.addEventListener("touchstart", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
+    document.body.addEventListener("touchend", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
+    document.body.addEventListener("touchmove", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
+
     this.updateCanvas();
   }
 
