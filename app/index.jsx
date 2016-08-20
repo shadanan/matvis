@@ -357,16 +357,11 @@ class App extends React.Component {
   render() {
     return (
       <div id="mainContainer" className="container">
-        <h1>
+        <h4>
           <a href="https://youtu.be/kYB8IZa5AuE">
             Linear Transformation Visualizer - Inspired by 3Blue1Brown
           </a>
-        </h1>
-        <ul>
-          <li>Drag the green and red targets to set in the transformed basis vectors.</li>
-          <li>Drag the yellow target to set the input vector.</li>
-          <li>Drag the t slider to visualize the transformation.</li>
-        </ul>
+        </h4>
         <CanvasComponent t={this.state.t} scale={60} />
         <ReactBootstrap.ListGroup>
           <ReactBootstrap.ListGroupItem header={"t (" + this.state.t + ")"}>
@@ -374,6 +369,12 @@ class App extends React.Component {
                    onChange={this.handleChange} />
           </ReactBootstrap.ListGroupItem>
         </ReactBootstrap.ListGroup>
+        <h4>Instructions</h4>
+        <ul>
+          <li>Drag the green and red targets to set in the transformed basis vectors.</li>
+          <li>Drag the yellow target to set the input vector.</li>
+          <li>Drag the t slider to visualize the transformation.</li>
+        </ul>
       </div>
     )
   }
