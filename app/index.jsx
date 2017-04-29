@@ -1,24 +1,3 @@
-function determinant(mf) {
-  let ix = mf[0][0];
-  let iy = mf[0][1];
-  let jx = mf[1][1];
-  let jy = mf[1][1];
-
-  let a = 1;
-  let b = -(ix + jy);
-  let c = ix*jy - iy*jx;
-
-  let d = b^2 - 4*a*c;
-
-  if (d < 0) {
-    return [];
-  } else if (d == 0) {
-    return [(-b + Math.sqrt(d)) / (2*a)]
-  } else {
-    return [(-b + Math.sqrt(d)) / (2*a), (-b - Math.sqrt(d)) / (2*a)];
-  }
-}
-
 function arrow(ctx, x1, y1, x2, y2, s) {
   let a = Math.atan2(y2 - y1, x2 - x1);
 
@@ -266,6 +245,31 @@ class CanvasComponent extends React.Component {
     }
 
 
+    // Eigen vectors
+    if (this.props.eigenvectors && this.props.t > 0) {
+      let evs = numeric.eig(m);
+
+      // Only show real eigenvectors
+      if (evs.E.y == undefined) {
+        let ev1 = [evs.lambda.x[0] * evs.E.x[0][0], evs.lambda.x[0] * evs.E.x[1][0]];
+        let ev2 = [evs.lambda.x[1] * evs.E.x[0][1], evs.lambda.x[1] * evs.E.x[1][1]];
+
+        let oldLineWidth = ctx.lineWidth;
+        ctx.lineWidth = 0.01;
+
+        ctx.strokeStyle = '#ffc181';
+        ctx.fillStyle = '#ffc181';
+        for (let i = -20; i <= 20; i++) {
+          if (i == 0) continue;
+          arrow(ctx, 0, 0, i * ev1[0], i * ev1[1], 0.2);
+          arrow(ctx, 0, 0, i * ev2[0], i * ev2[1], 0.2);
+        }
+
+        ctx.lineWidth = oldLineWidth;
+      }
+    }
+
+
     // iHat Basis vector
     ctx.strokeStyle = '#8cbe63';
     ctx.fillStyle = '#8cbe63';
@@ -277,6 +281,7 @@ class CanvasComponent extends React.Component {
     ctx.fillStyle = '#ff7c5c';
     let jHat = numeric.dot(m, [0, 1]);
     arrow(ctx, 0, 0, jHat[0], jHat[1], 0.2);
+
 
     // Input/Output vector
     if (this.props.inoutVector) {
@@ -291,11 +296,6 @@ class CanvasComponent extends React.Component {
       crosshair(ctx, this.state.x, this.state.y, 0.16);
     }
 
-
-    // Eigen vectors
-    console.log(mf);
-    console.log(determinant(mf));
-    console.log(numeric.eig(numeric.transpose(mf)));
 
     // Transformed iHat crosshair
     ctx.strokeStyle = '#8cbe63';
@@ -440,7 +440,7 @@ class App extends React.Component {
 
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.inoutVector}
-                onChange={this.toggleInoutVector}>Show Input/Output Vector</ReactBootstrap.Checkbox>
+                onChange={this.toggleInoutVector}>Show In/Out Vector</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.determinant}
@@ -456,8 +456,10 @@ class App extends React.Component {
         <h4>Instructions</h4>
         <ul>
           <li>Drag the green and red targets to set in the transformed basis vectors.</li>
-          <li>Drag the yellow target to set the input vector.</li>
           <li>Drag the t slider to visualize the transformation.</li>
+          <li>Enable the In/Out Vector to show a vector and its corresponding visualization.</li>
+          <li>Enable the Determinant to show the determinant in the visualization.</li>
+          <li>Enable the Eigenvectors to show the eigenvectors in the visualization.</li>
         </ul>
       </div>
     )
