@@ -1,3 +1,24 @@
+function determinant(mf) {
+  let ix = mf[0][0];
+  let iy = mf[0][1];
+  let jx = mf[1][1];
+  let jy = mf[1][1];
+
+  let a = 1;
+  let b = -(ix + jy);
+  let c = ix*jy - iy*jx;
+
+  let d = b^2 - 4*a*c;
+
+  if (d < 0) {
+    return [];
+  } else if (d == 0) {
+    return [(-b + Math.sqrt(d)) / (2*a)]
+  } else {
+    return [(-b + Math.sqrt(d)) / (2*a), (-b - Math.sqrt(d)) / (2*a)];
+  }
+}
+
 function arrow(ctx, x1, y1, x2, y2, s) {
   let a = Math.atan2(y2 - y1, x2 - x1);
 
@@ -30,7 +51,7 @@ function crosshair(ctx, x, y, s) {
 class CanvasComponent extends React.Component {
   constructor() {
     super();
-    this.state = {a: 0, c: 1, b: -1, d: 0, x: 1, y: 1, currentCrossHair: 0};
+    this.state = {a: 3, c: 0, b: 1, d: 2, x: 1, y: 1, currentCrossHair: 0};
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -230,6 +251,21 @@ class CanvasComponent extends React.Component {
     ctx.stroke();
 
 
+    // Determinant
+    if (this.props.determinant) {
+      ctx.strokeStyle = '#fdfe00';
+      ctx.fillStyle = 'rgba(253, 254, 0, 0.5)';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo.apply(ctx, numeric.dot(m, [1, 0]));
+      ctx.lineTo.apply(ctx, numeric.dot(m, [1, 1]));
+      ctx.lineTo.apply(ctx, numeric.dot(m, [0, 1]));
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fill();
+    }
+
+
     // iHat Basis vector
     ctx.strokeStyle = '#8cbe63';
     ctx.fillStyle = '#8cbe63';
@@ -242,12 +278,24 @@ class CanvasComponent extends React.Component {
     let jHat = numeric.dot(m, [0, 1]);
     arrow(ctx, 0, 0, jHat[0], jHat[1], 0.2);
 
-    // Input vector
-    ctx.strokeStyle = '#fdfe00';
-    ctx.fillStyle = '#fdfe00';
-    let tov = numeric.dot(m, [this.state.x, this.state.y]);
-    arrow(ctx, 0, 0, tov[0], tov[1], 0.2);
+    // Input/Output vector
+    if (this.props.inoutVector) {
+      ctx.strokeStyle = '#fdfe00';
+      ctx.fillStyle = '#fdfe00';
+      let tov = numeric.dot(m, [this.state.x, this.state.y]);
+      arrow(ctx, 0, 0, tov[0], tov[1], 0.2);
 
+      // Input Crosshair
+      ctx.strokeStyle = '#fdfe00';
+      ctx.fillStyle = '#fdfe00';
+      crosshair(ctx, this.state.x, this.state.y, 0.16);
+    }
+
+
+    // Eigen vectors
+    console.log(mf);
+    console.log(determinant(mf));
+    console.log(numeric.eig(numeric.transpose(mf)));
 
     // Transformed iHat crosshair
     ctx.strokeStyle = '#8cbe63';
@@ -258,11 +306,6 @@ class CanvasComponent extends React.Component {
     ctx.strokeStyle = '#ff7c5c';
     ctx.fillStyle = '#ff7c5c';
     crosshair(ctx, this.state.b, this.state.d, 0.16);
-
-    // Transformed input crosshair
-    ctx.strokeStyle = '#fdfe00';
-    ctx.fillStyle = '#fdfe00';
-    crosshair(ctx, this.state.x, this.state.y, 0.16);
 
     ctx.restore();
 
@@ -346,12 +389,27 @@ class CanvasComponent extends React.Component {
 class App extends React.Component {
   constructor() {
     super();
-    this.state = {t: 0};
+    this.state = {t: 0, inoutVector: false, determinant: false, eigenvectors: false};
     this.handleChange = this.handleChange.bind(this);
+    this.toggleInoutVector = this.toggleInoutVector.bind(this);
+    this.toggleDeterminant = this.toggleDeterminant.bind(this);
+    this.toggleEigenvectors = this.toggleEigenvectors.bind(this);
   }
 
   handleChange(event) {
     this.setState({t: event.target.value});
+  }
+
+  toggleInoutVector(event) {
+    this.setState({inoutVector: event.target.checked});
+  }
+
+  toggleDeterminant(event) {
+    this.setState({determinant: event.target.checked});
+  }
+
+  toggleEigenvectors(event) {
+    this.setState({eigenvectors: event.target.checked});
   }
 
   render() {
@@ -362,13 +420,39 @@ class App extends React.Component {
             Linear Transformation Visualizer - Inspired by 3Blue1Brown
           </a>
         </h4>
-        <CanvasComponent t={this.state.t} scale={60} />
-        <ReactBootstrap.ListGroup>
-          <ReactBootstrap.ListGroupItem header={"t (" + this.state.t + ")"}>
-            <input type="range" min={0} max={1} step={0.01} value={this.state.t}
-                   onChange={this.handleChange} />
-          </ReactBootstrap.ListGroupItem>
-        </ReactBootstrap.ListGroup>
+
+        <ReactBootstrap.Panel>
+          <CanvasComponent
+            t={this.state.t}
+            inoutVector={this.state.inoutVector}
+            determinant={this.state.determinant}
+            eigenvectors={this.state.eigenvectors}
+            scale={60} />
+
+          <ReactBootstrap.Form horizontal>
+            <ReactBootstrap.Col componentClass={ReactBootstrap.ControlLabel} sm={1}>
+              t: ({this.state.t})
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col sm={11}>
+              <ReactBootstrap.FormControl type="range" min={0} max={1} step={0.01}
+                value={this.state.t} onChange={this.handleChange} />
+            </ReactBootstrap.Col>
+
+            <ReactBootstrap.Col sm={2}>
+              <ReactBootstrap.Checkbox checked={this.state.inoutVector}
+                onChange={this.toggleInoutVector}>Show Input/Output Vector</ReactBootstrap.Checkbox>
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col sm={2}>
+              <ReactBootstrap.Checkbox checked={this.state.determinant}
+                onChange={this.toggleDeterminant}>Show Determinant</ReactBootstrap.Checkbox>
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col sm={2}>
+              <ReactBootstrap.Checkbox checked={this.state.eigenvectors}
+                onChange={this.toggleEigenvectors}>Show Eigenvectors</ReactBootstrap.Checkbox>
+            </ReactBootstrap.Col>
+          </ReactBootstrap.Form>
+        </ReactBootstrap.Panel>
+
         <h4>Instructions</h4>
         <ul>
           <li>Drag the green and red targets to set in the transformed basis vectors.</li>
