@@ -1,3 +1,5 @@
+const EPSILON = 0.05;
+
 function arrow(ctx, x1, y1, x2, y2, s) {
   let a = Math.atan2(y2 - y1, x2 - x1);
 
@@ -98,6 +100,7 @@ class CanvasComponent extends React.Component {
   }
 
   handleMouseDown(event) {
+    // Find distance to each target from mouse click
     let mousePosition = this.getMousePos(event);
     let d1 = numeric.norm2(numeric.sub(
       [mousePosition.x, mousePosition.y], [this.state.a, this.state.c]));
@@ -106,6 +109,7 @@ class CanvasComponent extends React.Component {
     let d3 = numeric.norm2(numeric.sub(
       [mousePosition.x, mousePosition.y], [this.state.x, this.state.y]));
 
+    // Pick the closest target to the mouse click
     if (Math.min(d1, d2, d3) == d1) {
       this.state.currentCrossHair = 1;
     } else if (Math.min(d1, d2, d3) == d2) {
@@ -124,6 +128,19 @@ class CanvasComponent extends React.Component {
   handleMouseMove(event) {
     if (this.state.currentCrossHair != 0) {
       let mousePosition = this.getMousePos(event);
+
+      if (this.props.snapToGrid) {
+        let xSnap = Math.round(mousePosition.x * 2) / 2;
+        let ySnap = Math.round(mousePosition.y * 2) / 2;
+
+        if (Math.abs(xSnap - mousePosition.x) < EPSILON) {
+          mousePosition.x = xSnap;
+        }
+
+        if (Math.abs(ySnap - mousePosition.y) < EPSILON) {
+          mousePosition.y = ySnap;
+        }
+      }
 
       if (this.state.currentCrossHair == 1) {
         this.state.a = mousePosition.x;
@@ -232,8 +249,13 @@ class CanvasComponent extends React.Component {
 
     // Determinant
     if (this.props.determinant) {
-      ctx.strokeStyle = '#fdfe00';
-      ctx.fillStyle = 'rgba(253, 254, 0, 0.5)';
+      if (numeric.det(m) < 0) {
+        ctx.strokeStyle = '#fd00fe';
+        ctx.fillStyle = 'rgba(253, 0, 254, 0.5)';
+      } else {
+        ctx.strokeStyle = '#fdfe00';
+        ctx.fillStyle = 'rgba(253, 254, 0, 0.5)';
+      }
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo.apply(ctx, numeric.dot(m, [1, 0]));
@@ -389,11 +411,20 @@ class CanvasComponent extends React.Component {
 class App extends React.Component {
   constructor() {
     super();
-    this.state = {t: 0, inoutVector: false, determinant: false, eigenvectors: false};
+
+    this.state = {
+      t: 0,
+      inoutVector: false,
+      determinant: false,
+      eigenvectors: false,
+      snapToGrid: false
+    };
+
     this.handleChange = this.handleChange.bind(this);
     this.toggleInoutVector = this.toggleInoutVector.bind(this);
     this.toggleDeterminant = this.toggleDeterminant.bind(this);
     this.toggleEigenvectors = this.toggleEigenvectors.bind(this);
+    this.toggleSnapToGrid = this.toggleSnapToGrid.bind(this);
   }
 
   handleChange(event) {
@@ -412,6 +443,10 @@ class App extends React.Component {
     this.setState({eigenvectors: event.target.checked});
   }
 
+  toggleSnapToGrid(event) {
+    this.setState({snapToGrid: event.target.checked});
+  }
+
   render() {
     return (
       <div id="mainContainer" className="container">
@@ -427,6 +462,7 @@ class App extends React.Component {
             inoutVector={this.state.inoutVector}
             determinant={this.state.determinant}
             eigenvectors={this.state.eigenvectors}
+            snapToGrid={this.state.snapToGrid}
             scale={60} />
 
           <ReactBootstrap.Form horizontal>
@@ -449,6 +485,10 @@ class App extends React.Component {
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.eigenvectors}
                 onChange={this.toggleEigenvectors}>Show Eigenvectors</ReactBootstrap.Checkbox>
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col sm={2}>
+              <ReactBootstrap.Checkbox checked={this.state.snapToGrid}
+                onChange={this.toggleSnapToGrid}>Snap to Grid</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
           </ReactBootstrap.Form>
         </ReactBootstrap.Panel>
