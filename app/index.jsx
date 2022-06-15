@@ -99,6 +99,20 @@ class CanvasComponent extends React.Component {
     this.updateCanvas();
   }
 
+  /**
+   * Notes on implementation:
+   *
+   * State object holds:
+   * - matrix values (a-d)
+   * - vector to be transformed (x, y)
+   * - currentCrossHair: Values 0-3
+   *    0: No current cross hair, this is reset, whenever mouseUp is called
+   *    1: Current cross hair is target for the first base vector [1, 0] (green)
+   *    2: Current cross hair is target for the second base vector [0, 1] (red)
+   *    3: Current cross hair is origin for the custom in/out vector (yellow)
+   *
+   *
+   */
   handleMouseDown(event) {
     // Find distance to each target from mouse click
     let mousePosition = this.getMousePos(event);
@@ -106,15 +120,15 @@ class CanvasComponent extends React.Component {
       [mousePosition.x, mousePosition.y], [this.state.a, this.state.c]));
     let d2 = numeric.norm2(numeric.sub(
       [mousePosition.x, mousePosition.y], [this.state.b, this.state.d]));
-    let d3 = numeric.norm2(numeric.sub(
-      [mousePosition.x, mousePosition.y], [this.state.x, this.state.y]));
+    let d3 = this.props.inoutVector ? numeric.norm2(numeric.sub(
+      [mousePosition.x, mousePosition.y], [this.state.x, this.state.y])) : Number.MAX_VALUE;
 
     // Pick the closest target to the mouse click
-    if (Math.min(d1, d2, d3) == d1) {
+    if (Math.min(d1, d2, d3) === d1) {
       this.state.currentCrossHair = 1;
-    } else if (Math.min(d1, d2, d3) == d2) {
+    } else if (Math.min(d1, d2, d3) === d2) {
       this.state.currentCrossHair = 2;
-    } else if (Math.min(d1, d2, d3) == d3) {
+    } else if (Math.min(d1, d2, d3) === d3) {
       this.state.currentCrossHair = 3;
     }
 
@@ -126,7 +140,7 @@ class CanvasComponent extends React.Component {
   }
 
   handleMouseMove(event) {
-    if (this.state.currentCrossHair != 0) {
+    if (this.state.currentCrossHair !== 0) {
       let mousePosition = this.getMousePos(event);
 
       if (this.props.snapToGrid) {
@@ -142,13 +156,13 @@ class CanvasComponent extends React.Component {
         }
       }
 
-      if (this.state.currentCrossHair == 1) {
+      if (this.state.currentCrossHair === 1) {
         this.state.a = mousePosition.x;
         this.state.c = mousePosition.y;
-      } else if (this.state.currentCrossHair == 2) {
+      } else if (this.state.currentCrossHair === 2) {
         this.state.b = mousePosition.x;
         this.state.d = mousePosition.y;
-      } else if (this.state.currentCrossHair == 3) {
+      } else if (this.state.currentCrossHair === 3) {
         this.state.x = mousePosition.x;
         this.state.y = mousePosition.y;
       }
@@ -159,6 +173,8 @@ class CanvasComponent extends React.Component {
 
   updateCanvas() {
     let canvas = this.refs.canvas;
+    let det = this.state.a * this.state.d - this.state.c * this.state.b;
+    let detText = det.toFixed(2);
     canvas.style.backgroundColor = 'rgba(0, 0, 0, 1)';
 
     let ctx = canvas.getContext('2d');
@@ -330,10 +346,15 @@ class CanvasComponent extends React.Component {
     crosshair(ctx, this.state.b, this.state.d, 0.16);
 
     ctx.restore();
+    ctx.fillStyle = '#000000';
+    let infoBgExtension = this.props.determinant ? 50 : 0;
+    ctx.fillRect(0,0,360,90 + infoBgExtension);
 
     // Output Matrix
     ctx.lineWidth = 4;
     ctx.strokeStyle = '#ffffff';
+
+    let fv = numeric.dot(mf, [this.state.x, this.state.y]);
 
     ctx.beginPath();
     ctx.moveTo(15, 10);
@@ -370,14 +391,21 @@ class CanvasComponent extends React.Component {
     ctx.lineTo(280, 80);
     ctx.stroke();
 
+    let fv1Text = fv[0].toFixed(2);
+    let fv2Text = fv[1].toFixed(2);
+    let resultWidth = Math.max(fv1Text.length, fv2Text.length);
+    let xOffset = resultWidth * 2.5;
     ctx.beginPath();
-    ctx.moveTo(340, 10);
-    ctx.lineTo(345, 10);
-    ctx.lineTo(345, 80);
-    ctx.lineTo(340, 80);
+    ctx.moveTo(340 + xOffset, 10);
+    ctx.lineTo(345 + xOffset, 10);
+    ctx.lineTo(345 + xOffset, 80);
+    ctx.lineTo(340 + xOffset, 80);
     ctx.stroke();
 
     ctx.font = "20pt serif";
+
+    ctx.fillStyle = '#fdfe00';
+    if (this.props.determinant) ctx.fillText("Determinant: " + detText, 20, 120);
 
     ctx.fillStyle = '#8cbe63';
     ctx.fillText(this.state.a.toFixed(2), 20, 35);
@@ -393,9 +421,8 @@ class CanvasComponent extends React.Component {
 
     ctx.fillStyle = '#ffffff';
     ctx.fillText("=", 250, 50);
-    let fv = numeric.dot(mf, [this.state.x, this.state.y]);
-    ctx.fillText(fv[0].toFixed(2), 285, 35);
-    ctx.fillText(fv[1].toFixed(2), 285, 75);
+    ctx.fillText(fv1Text, 285, 35);
+    ctx.fillText(fv2Text, 285, 75);
   }
 
   render() {
@@ -474,21 +501,21 @@ class App extends React.Component {
                 value={this.state.t} onChange={this.handleChange} />
             </ReactBootstrap.Col>
 
-            <ReactBootstrap.Col sm={2}>
+            <ReactBootstrap.Col sm={3}>
               <ReactBootstrap.Checkbox checked={this.state.inoutVector}
-                onChange={this.toggleInoutVector}>Show In/Out Vector</ReactBootstrap.Checkbox>
+                onChange={this.toggleInoutVector}> Show In/Out Vector</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.determinant}
-                onChange={this.toggleDeterminant}>Show Determinant</ReactBootstrap.Checkbox>
+                onChange={this.toggleDeterminant}> Show Determinant</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.eigenvectors}
-                onChange={this.toggleEigenvectors}>Show Eigenvectors</ReactBootstrap.Checkbox>
+                onChange={this.toggleEigenvectors}> Show Eigenvectors</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
             <ReactBootstrap.Col sm={2}>
               <ReactBootstrap.Checkbox checked={this.state.snapToGrid}
-                onChange={this.toggleSnapToGrid}>Snap to Grid</ReactBootstrap.Checkbox>
+                onChange={this.toggleSnapToGrid}> Snap to Grid</ReactBootstrap.Checkbox>
             </ReactBootstrap.Col>
           </ReactBootstrap.Form>
         </ReactBootstrap.Panel>
